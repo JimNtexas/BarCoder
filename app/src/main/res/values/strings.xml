@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">BarCoder</string>
+    <string name="action_settings">Settings</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="title_activity_camera">CameraActivity</string>
+    <string name="picture">Picture</string>
+    <string name="description_info">Info</string>
+    <string name="request_permission">This sample needs camera permission.</string>
+    <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="info_message">Capture a picture of a barcode</string>
+</resources>
