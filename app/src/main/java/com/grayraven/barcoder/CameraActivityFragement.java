@@ -18,25 +18,33 @@ package com.grayraven.barcoder;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DialogFragment;
+import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraDevice;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.util.Size;
 import android.view.LayoutInflater;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 
 import java.io.File;
-import java.util.Comparator;
+import java.util.List;
 
 public class CameraActivityFragement extends android.support.v4.app.Fragment
         implements View.OnClickListener {
 
 
     private static final String TAG = "CameraActivityFragement";
+
+    Camera mCamera;
+    Context mContext;
+    List<Camera.Size> mSupportedPreviewSizes;
+    Preview mPreview;
+    SurfaceHolder mHolder;
 
 
     /**
@@ -93,6 +101,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        mContext = getActivity();
         Log.d(TAG, "onActivityCreated");
     }
 
@@ -100,6 +109,8 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
+        setCamera(mCamera);
+
         //startBackgroundThread();
 
         // When the screen is turned off and turned back on, the SurfaceTexture is already
@@ -115,87 +126,68 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
 
     @Override
     public void onPause() {
-        // closeCamera();
-        //  stopBackgroundThread();
+        stopPreviewAndFreeCamera();
         Log.d(TAG, "onPause");
         super.onPause();
     }
 
+    public void setCamera(Camera camera) {
+   //     if (camera != null && mCamera == camera)
+    //        { return; }
+
+        stopPreviewAndFreeCamera();
+        safeCameraOpen();
+        if (mCamera != null) {
+            List<Camera.Size> localSizes = mCamera.getParameters().getSupportedPreviewSizes();
+            mSupportedPreviewSizes = localSizes;
+            mPreview = new Preview(mContext);
+        }
+    }
 
     /**
-     * Sets up member variables related to camera.
-     *
-     * @param width  The width of available size for camera preview
-     * @param height The height of available size for camera preview
+     * When this function returns, mCamera will be null.
      */
-    private void setUpCameraOutputs(int width, int height) {
-      /*  Activity activity = getActivity();
-        CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+    private void stopPreviewAndFreeCamera() {
+
+        if (mCamera != null) {
+            // Call stopPreview() to stop updating the preview surface.
+            mCamera.stopPreview();
+
+            // Important: Call release() to release the camera for use by other
+            // applications. Applications should release the camera immediately
+            // during onPause() and re-open() it during onResume()).
+            mCamera.release();
+
+            mCamera = null;
+        }
+            mPreview = null;
+    }
+
+
+
+    private boolean safeCameraOpen() {
+        boolean qOpened = false;
+
         try {
-            for (String cameraId : manager.getCameraIdList()) {
-                CameraCharacteristics characteristics
-                        = manager.getCameraCharacteristics(cameraId);
+            stopPreviewAndFreeCamera();
 
-                // We don't use a front facing camera in this sample.
-                Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    continue;
+            //get index of front camera
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            int count = Camera.getNumberOfCameras();
+            for(int i=0; i < count; i++) {
+                Camera.getCameraInfo(i, cameraInfo);
+                if(cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                   mCamera = Camera.open(i);
+                   break;
                 }
-
-                StreamConfigurationMap map = characteristics.get(
-                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                if (map == null) {
-                    continue;
-                }
-
-                // For still image captures, we use the largest available size.
-                Size largest = Collections.max(
-                        Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
-                        new CompareSizesByArea());
-                mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
-                        ImageFormat.JPEG, *//*maxImages*//*2);
-                mImageReader.setOnImageAvailableListener(
-                        mOnImageAvailableListener, mBackgroundHandler);
-
-                // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-                // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-                // garbage capture data.
-                mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                        width, height, largest);
-
-                // We fit the aspect ratio of TextureView to the size of preview we picked.
-                int orientation = getResources().getConfiguration().orientation;
-                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    mTextureView.setAspectRatio(
-                            mPreviewSize.getWidth(), mPreviewSize.getHeight());
-                } else {
-                    mTextureView.setAspectRatio(
-                            mPreviewSize.getHeight(), mPreviewSize.getWidth());
-                }
-
-                mCameraId = cameraId;
-                return;
             }
-        } catch (CameraAccessException e) {
+            qOpened = (mCamera != null);
+        } catch (Exception e) {
+            Log.e(getString(R.string.app_name), "failed to open Camera");
             e.printStackTrace();
-        } catch (NullPointerException e) {
-            // Currently an NPE is thrown when the Camera2API is used but not supported on the
-            // device this code runs.
+        }
 
-        }*/
-    }
-
-    /**
-     * Opens the camera
-     */
-    private void openCamera(int width, int height) {
-
-    }
-
-    /**
-     * Closes the current {@link CameraDevice}.
-     */
-    private void closeCamera() {
+        return qOpened;
     }
 
     /**
@@ -221,19 +213,45 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }*/
     }
 
-   /* public CameraPreview() implements SurfaceHolder.Callback {
-        super(mContext);
+    class Preview extends ViewGroup implements SurfaceHolder.Callback {
 
-        // Capture the context
-        // Install a SurfaceHolder.Callback so we get notified when the
-        // underlying surface is created and destroyed.
-      *//*  mHolder = getHolder();
-        mHolder.addCallback(this);
-        mHolder.setKeepScreenOn(true);
-        // deprecated setting, but required on Android versions prior to 3.0
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);*//*
+        SurfaceView mSurfaceView;
+
+        Preview(Context context) {
+            super(context);
+
+            mSurfaceView = new SurfaceView(context);
+            addView(mSurfaceView);
+
+            // Install a SurfaceHolder.Callback so we get notified when the
+            // underlying surface is created and destroyed.
+            mHolder = mSurfaceView.getHolder();
+            mHolder.addCallback(this);
+            mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+            startCameraPreview();
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+
+        }
+
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            Log.d(TAG, "surfaceCreated");
+
+        }
+
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            Log.d(TAG, "surfaceChanged");
+        }
+
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            Log.d(TAG, "surfaceDestroyed");
+        }
     }
-*/
 
     /**
      * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
@@ -272,13 +290,13 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
      * Begin the preview of the camera input.
      */
     public void startCameraPreview() {
-  /*      try{
-       //     mCamera.setPreviewDisplay(mHolder);
+       try{
+           mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
         }
         catch(Exception e){
             e.printStackTrace();
-        }*/
+        }
     }
 
     /**
@@ -449,7 +467,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         /**
          * Compares two {@code Size}s based on their areas.
          */
-        static class CompareSizesByArea implements Comparator<Size> {
+      /*  static class CompareSizesByArea implements Comparator<Size> {
 
             @Override
             public int compare(Size lhs, Size rhs) {
@@ -458,7 +476,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
                         (long) rhs.getWidth() * rhs.getHeight());
             }
 
-        }
+        }*/
 
         /**
          * Shows an error message dialog.
