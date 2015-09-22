@@ -42,11 +42,11 @@
         tools:ignore="RtlCompat">
 
         <Button
-            android:id="@+id/picture"
+            android:id="@+id/capture_image"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="picture text" />
+            android:text="Capture Image" />
 
         <ImageButton
             android:id="@+id/info"
