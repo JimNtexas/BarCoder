@@ -15,12 +15,9 @@ package com.grayraven.barcoder;
  * limitations under the License.
  */
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.hardware.Camera;
-import android.hardware.camera2.CameraDevice;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
@@ -32,10 +29,11 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class CameraActivityFragement extends android.support.v4.app.Fragment
-        implements View.OnClickListener {
+        implements SurfaceHolder.Callback {
 
 
     private static final String TAG = "CameraActivityFragement";
@@ -43,43 +41,10 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     Camera mCamera;
     Context mContext;
     List<Camera.Size> mSupportedPreviewSizes;
-    Preview mPreview;
     SurfaceHolder mHolder;
+    SurfaceView mSurfaceView;
 
 
-    /**
-     * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
-     */
-    //  private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
-
-     /*   @Override
-        public void onOpened(@NonNull CameraDevice cameraDevice) {
-            // This method is called when the camera is opened.  We start camera preview here.
-            mCameraOpenCloseLock.release();
-            mCameraDevice = cameraDevice;
-            //createCameraPreviewSession();
-        }
-
-        @Override
-        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice cameraDevice, int error) {
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-            Activity activity = getActivity();
-            if (null != activity) {
-                activity.finish();
-            }
-        }
-
-    };
-*/
     public static CameraActivityFragement newInstance() {
         return new CameraActivityFragement();
     }
@@ -91,13 +56,19 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         return inflater.inflate(R.layout.fragment_camera, container, false);
     }
 
-    /*  @Override
+     @Override
       public void onViewCreated(final View view, Bundle savedInstanceState) {
-          view.findViewById(R.id.picture).setOnClickListener(this);
-          view.findViewById(R.id.info).setOnClickListener(this);
-          mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
-      }
-  */
+  //        view.findViewById(R.id.picture).setOnClickListener(this);
+    //      view.findViewById(R.id.info).setOnClickListener(this);
+         mSurfaceView = (SurfaceView) view.findViewById(R.id.surface_view);
+
+       /*  rawCallback = new PictureCallback() {
+             public void onPictureTaken(byte[] data, Camera camera) {
+                 Log.d("Log", "onPictureTaken - raw");
+             }
+         };*/
+     }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -132,15 +103,25 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     }
 
     public void setCamera(Camera camera) {
-   //     if (camera != null && mCamera == camera)
-    //        { return; }
-
         stopPreviewAndFreeCamera();
+
+        mHolder = mSurfaceView.getHolder();
+        mHolder.addCallback(this);
+        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+
         safeCameraOpen();
         if (mCamera != null) {
             List<Camera.Size> localSizes = mCamera.getParameters().getSupportedPreviewSizes();
             mSupportedPreviewSizes = localSizes;
-            mPreview = new Preview(mContext);
+           // mPreview = new Preview(mContext);
+            try {
+                mCamera.setPreviewDisplay(mHolder);
+            } catch (IOException e) {
+                Log.e(TAG, "could not set preview display");
+                return;
+            }
+            mCamera.startPreview();
         }
     }
 
@@ -160,7 +141,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
 
             mCamera = null;
         }
-            mPreview = null;
+         //   mPreview = null;
     }
 
 
@@ -213,7 +194,24 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }*/
     }
 
-    class Preview extends ViewGroup implements SurfaceHolder.Callback {
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        Log.d(TAG, "sufaceCreated");
+        startCameraPreview();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Log.d(TAG, "sufaceChanged");
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.d(TAG, "sufaceDestroyed");
+
+    }
+
+    /*class Preview extends ViewGroup implements SurfaceHolder.Callback {
 
         SurfaceView mSurfaceView;
 
@@ -252,7 +250,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
             Log.d(TAG, "surfaceDestroyed");
         }
     }
-
+*/
     /**
      * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
      * This method should be called after the camera preview size is determined in
@@ -400,7 +398,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }*/
     }
 
-    @Override
+/*    @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
@@ -418,7 +416,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
                 break;
             }
         }
-    }
+    }*/
 
     /**
      * Saves a JPEG {@link Image} into the specified {@link File}.
