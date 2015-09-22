@@ -15,7 +15,6 @@ package com.grayraven.barcoder;
  * limitations under the License.
  */
 
-import android.app.DialogFragment;
 import android.content.Context;
 import android.hardware.Camera;
 import android.media.Image;
@@ -133,15 +132,9 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         if (mCamera != null) {
             // Call stopPreview() to stop updating the preview surface.
             mCamera.stopPreview();
-
-            // Important: Call release() to release the camera for use by other
-            // applications. Applications should release the camera immediately
-            // during onPause() and re-open() it during onResume()).
             mCamera.release();
-
             mCamera = null;
         }
-         //   mPreview = null;
     }
 
 
@@ -157,7 +150,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
             int count = Camera.getNumberOfCameras();
             for(int i=0; i < count; i++) {
                 Camera.getCameraInfo(i, cameraInfo);
-                if(cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                if(cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                    mCamera = Camera.open(i);
                    break;
                 }
@@ -169,6 +162,16 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }
 
         return qOpened;
+    }
+
+    public void startCameraPreview() {
+        try{
+            mCamera.setPreviewDisplay(mHolder);
+            mCamera.startPreview();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -211,46 +214,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
 
     }
 
-    /*class Preview extends ViewGroup implements SurfaceHolder.Callback {
 
-        SurfaceView mSurfaceView;
-
-        Preview(Context context) {
-            super(context);
-
-            mSurfaceView = new SurfaceView(context);
-            addView(mSurfaceView);
-
-            // Install a SurfaceHolder.Callback so we get notified when the
-            // underlying surface is created and destroyed.
-            mHolder = mSurfaceView.getHolder();
-            mHolder.addCallback(this);
-            mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            startCameraPreview();
-        }
-
-        @Override
-        protected void onLayout(boolean changed, int l, int t, int r, int b) {
-
-        }
-
-        @Override
-        public void surfaceCreated(SurfaceHolder holder) {
-            Log.d(TAG, "surfaceCreated");
-
-        }
-
-        @Override
-        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            Log.d(TAG, "surfaceChanged");
-        }
-
-        @Override
-        public void surfaceDestroyed(SurfaceHolder holder) {
-            Log.d(TAG, "surfaceDestroyed");
-        }
-    }
-*/
     /**
      * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
      * This method should be called after the camera preview size is determined in
@@ -287,15 +251,7 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     /**
      * Begin the preview of the camera input.
      */
-    public void startCameraPreview() {
-       try{
-           mCamera.setPreviewDisplay(mHolder);
-            mCamera.startPreview();
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+
 
     /**
      * Initiate a still image capture.
@@ -335,46 +291,6 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }*/
     }
 
-    private void captureStillPicture() {
-       /* try {
-            final Activity activity = getActivity();
-            if (null == activity || null == mCameraDevice) {
-                return;
-            }
-            // This is the CaptureRequest.Builder that we use to take a picture.
-            final CaptureRequest.Builder captureBuilder =
-                    mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(mImageReader.getSurface());
-
-            // Use the same AE and AF modes as the preview.
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-
-            // Orientation
-            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-
-            CameraCaptureSession.CaptureCallback CaptureCallback
-                    = new CameraCaptureSession.CaptureCallback() {
-
-                @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                               @NonNull CaptureRequest request,
-                                               @NonNull TotalCaptureResult result) {
-                    showToast("Saved: " + mFile);
-                    Log.d(TAG, mFile.toString());
-                    unlockFocus();
-                }
-            };
-
-            mCaptureSession.stopRepeating();
-            mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        } */
-    }
 
     /**
      * Unlock the focus. This method should be called when still image capture sequence is
@@ -421,15 +337,15 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
     /**
      * Saves a JPEG {@link Image} into the specified {@link File}.
      */
-    private static class ImageSaver implements Runnable {
+  /* *//*     private static class ImageSaver implements Runnable {
 
-        /**
+        *//**
          * The JPEG image
-         */
+         *//*
         private final Image mImage;
-        /**
+        *//**
          * The file we save the image into.
-         */
+         *//*
         private final File mFile;
 
         public ImageSaver(Image image, File file) {
@@ -438,8 +354,8 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
         }
 
         @Override
-        public void run() {
-          /*  ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
+       public void run() {
+        ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
             FileOutputStream output = null;
@@ -458,14 +374,14 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
                     }
                 }
             }
-        }*/
+        }*//*
 
-        }
 
-        /**
+
+        *//**
          * Compares two {@code Size}s based on their areas.
-         */
-      /*  static class CompareSizesByArea implements Comparator<Size> {
+         *//*
+      *//*  static class CompareSizesByArea implements Comparator<Size> {
 
             @Override
             public int compare(Size lhs, Size rhs) {
@@ -474,11 +390,11 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
                         (long) rhs.getWidth() * rhs.getHeight());
             }
 
-        }*/
+        }*//*
 
-        /**
+        *//**
          * Shows an error message dialog.
-         */
+         *//*
         public static class ErrorDialog extends DialogFragment {
 
             private static final String ARG_MESSAGE = "message";
@@ -492,26 +408,5 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
             }
 
         }
-
-        public static Camera getCameraInstance() {
-            Camera c = null;
-            try {
-                c = Camera.open(); // attempt to get a Camera instance
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return c; // returns null if camera is unavailable
-        }
-
-        private void releaseCameraAndPreview() {
-
-    /*    if (mCamera != null) {
-            mCamera.stopPreview();
-            mCamera.release();
-            mCamera = null;
-        }*/
-        }
-
-
-    }
+*/
 }
