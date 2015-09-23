@@ -20,7 +20,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.Camera;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -35,8 +34,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 public class CameraActivityFragement extends android.support.v4.app.Fragment
@@ -164,10 +161,10 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
 
         jpegCallback = new Camera.PictureCallback() {
             public void onPictureTaken(byte[] data, Camera camera) {
+                boolean result = false;
                 File pictureFile = getOutputMediaFile();
                 if (pictureFile == null) {
-                    Toast.makeText(getActivity(), "Image retrieval failed.", Toast.LENGTH_SHORT)
-                            .show();
+                    Toast.makeText(getActivity(), "Image retrieval failed.", Toast.LENGTH_LONG).show();
                     return;
                 }
 
@@ -175,17 +172,25 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
                     FileOutputStream fos = new FileOutputStream(pictureFile);
                     fos.write(data);
                     fos.close();
+                    Log.i(TAG, "Imaged saved to:" + pictureFile.getAbsolutePath());
+                    result = true;
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
+                    Log.e(TAG, "File exception saving captured image: " + e.getLocalizedMessage());
+                    result = false;
                 } catch (IOException e) {
                     e.printStackTrace();
+                    Log.e(TAG, "File exception saving captured image: " + e.getLocalizedMessage());
+                    result = false;
                 }
 
-                /***
-                 * todo:  check for barcode, if found, go back to main, if not give user another change
-                 */
-                Intent i=new Intent(getActivity(),MainActivity.class);
-                startActivity(i);
+               if(result) {
+                   ((CameraActivity)getActivity()).setScanResult(true);
+                   Intent i = new Intent(getActivity(), MainActivity.class);
+                   startActivity(i);
+               } else {
+                   ((CameraActivity)getActivity()).setScanResult(false);
+               }
             }
         };
     }
@@ -274,23 +279,12 @@ public class CameraActivityFragement extends android.support.v4.app.Fragment
 
     private File getOutputMediaFile(){
 
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "BarCoder");
-
-        if (! mediaStorageDir.exists()){
-            if (! mediaStorageDir.mkdirs()){
-                Log.d("Camera Guide", "Required media storage does not exist");
-                return null;
-            }
+        String path = getActivity().getCacheDir().getAbsolutePath() + File.separator + CameraActivity.SCANNED_IMAGE_FILENAME;
+        File mediaFile = new File(path);
+        if(mediaFile.exists()) {
+            mediaFile.delete();
+            mediaFile = new File(path);
         }
-
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        File mediaFile;
-        mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                "IMG_"+ timeStamp + ".jpg");
-
-
         return mediaFile;
     }
 }
